@@ -12,9 +12,10 @@ func main() {
 
 	for _, report := range excelReports {
 		filepath := fmt.Sprintf("files/excel_reports/%s", report.File_Name)
+
 		err := tools.Download(filepath, report.File_Path)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 	}
 }

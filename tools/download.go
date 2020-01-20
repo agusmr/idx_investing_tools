@@ -10,8 +10,8 @@ import (
 
 func Download(filepath string, url string) error {
 	info, err := os.Stat(filepath)
-	if os.IsExist(err) {
-		return errors.New(fmt.Sprintf("%v file exists", info))
+	if info != nil {
+		return errors.New(fmt.Sprintf("%s already exists", info.Name()))
 	}
 
 	resp, err := http.Get(url)
