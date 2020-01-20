@@ -1,4 +1,4 @@
-module github.com/kevinjanada/idx_web_scraper
+module github.com/kevinjanada/idx_investing_tools
 
 go 1.13
 
