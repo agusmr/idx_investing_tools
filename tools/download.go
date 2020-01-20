@@ -1,17 +1,24 @@
 package tools
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
-func Download(filepath string, url string) error {
-	info, err := os.Stat(filepath)
+// Download -- Download from a given url
+func Download(directory string, filename string, url string) error {
+	fullFilePath := filepath.Join(directory, filename)
+	info, err := os.Stat(fullFilePath)
 	if info != nil {
-		return errors.New(fmt.Sprintf("%s already exists", info.Name()))
+		return fmt.Errorf("%s already exists", info.Name())
+	}
+
+	err = os.MkdirAll(directory, os.ModeDir)
+	if err != nil {
+		return err
 	}
 
 	resp, err := http.Get(url)
@@ -20,7 +27,7 @@ func Download(filepath string, url string) error {
 	}
 	defer resp.Body.Close()
 
-	out, err := os.Create(filepath)
+	out, err := os.Create(fullFilePath)
 	if err != nil {
 		return err
 	}
