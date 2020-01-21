@@ -3,7 +3,6 @@ package financialreport
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -11,8 +10,8 @@ import (
 	"github.com/kevinjanada/idx_investing_tools/tools"
 )
 
-// FinancialReportAPIResponse -- Json response from IDX get financial report API
-type FinancialReportAPIResponse struct {
+// FRAPIResponse -- Json response from IDX get financial report API
+type FRAPIResponse struct {
 	Year        string
 	Period      string
 	Search      Search   `json:"Search"`
@@ -20,7 +19,7 @@ type FinancialReportAPIResponse struct {
 	Results     []Result `json:"Results"`
 }
 
-// Search -- FinancialReportAPIResponse Search field
+// Search -- FRAPIResponseSearch field
 type Search struct {
 	ReportType string `json:"ReportType"`
 	KodeEmiten string `json:"KodeEmiten"`
@@ -30,7 +29,7 @@ type Search struct {
 	Pagesize   int    `json:"pagesize"`
 }
 
-// Result -- FinancialReportAPIResponse Search Results
+// Result -- FRAPIResponseSearch Results
 type Result struct {
 	KodeEmiten   string       `json:"KodeEmiten"`
 	FileModified string       `json:"File_Modified"`
@@ -40,7 +39,7 @@ type Result struct {
 	Attachments  []Attachment `json:"Attachments"`
 }
 
-// Attachment -- FinancialReportAPIResponse Attachment object
+// Attachment -- FRAPIResponseAttachment object
 type Attachment struct {
 	EmitenCode   string `json:"Emiten_Code"`
 	FileID       string `json:"File_ID"`
@@ -56,7 +55,7 @@ type Attachment struct {
 }
 
 // Print -- Pretty Print  struct
-func (fr *FinancialReportAPIResponse) Print() {
+func (fr *FRAPIResponse) Print() {
 	res, err := json.MarshalIndent(fr, "", "\t")
 	if err != nil {
 		panic(err)
@@ -65,7 +64,7 @@ func (fr *FinancialReportAPIResponse) Print() {
 }
 
 // GetExcelReportLinks -- Return download links of all excel reports
-func (fr *FinancialReportAPIResponse) GetExcelReportLinks() []Attachment {
+func (fr *FRAPIResponse) GetExcelReportLinks() []Attachment {
 	attachments := []Attachment{}
 	for _, res := range fr.Results {
 		for _, att := range res.Attachments {
@@ -78,10 +77,11 @@ func (fr *FinancialReportAPIResponse) GetExcelReportLinks() []Attachment {
 }
 
 // DownloadExcelReports -- Download all available excel reports
-func (fr *FinancialReportAPIResponse) DownloadExcelReports() error {
+func (fr *FRAPIResponse) DownloadExcelReports() error {
 	excelReportLinks := fr.GetExcelReportLinks()
 	for _, report := range excelReportLinks {
 		directory := filepath.Join("files", "excel_reports", fr.Year, fr.Period)
+		fmt.Printf("Downloading %s", report.FileName)
 		err := tools.Download(directory, report.FileName, report.FilePath)
 		if err != nil {
 			fmt.Println(err)
@@ -91,31 +91,92 @@ func (fr *FinancialReportAPIResponse) DownloadExcelReports() error {
 }
 
 // GenerateURL --
-func GenerateURL(page int, pageSize int, year int, period int) string {
+func GenerateURL(page int, pageSize int, year int, period int, emitenCode string) string {
 	return fmt.Sprintf(
-		"https://www.idx.co.id/umbraco/Surface/ListedCompany/GetFinancialReport?indexFrom=%d&pageSize=%d&year=%d&reportType=rdf&periode=tw%d&kodeEmiten=",
+		"https://www.idx.co.id/umbraco/Surface/ListedCompany/GetFinancialReport?indexFrom=%d&pageSize=%d&year=%d&reportType=rdf&periode=tw%d&kodeEmiten=%s",
 		page,
 		pageSize,
 		year,
 		period,
+		emitenCode,
 	)
 }
 
 // GetFinancialReports -- Return FinancialReport struct for the selected year and period (trimester/triwulan)
-func GetFinancialReports(year int, period int) *FinancialReportAPIResponse {
-	URL := GenerateURL(0, 1000, year, period)
+func GetFinancialReports(year int, period int) (*FRAPIResponse, error) {
+	page := 1
+	pageSize := 50
+	URL := GenerateURL(page, pageSize, year, period, "")
+
 	resp, err := http.Get(URL)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-
-	financialReportResponse := &FinancialReportAPIResponse{Year: strconv.Itoa(year), Period: fmt.Sprintf("trimester_%d", period)}
-	err = json.Unmarshal([]byte(body), financialReportResponse)
+	aggregatedResponse := &FRAPIResponse{Year: strconv.Itoa(year), Period: fmt.Sprintf("trimester_%d", period)}
+	tools.JSONToStruct(resp, aggregatedResponse)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	return financialReportResponse
+
+	resultCount := aggregatedResponse.ResultCount
+	resultLeft := resultCount
+	// While there are still result left
+	for resultLeft > 0 {
+		URL = GenerateURL(page, pageSize, year, period, "")
+		fmt.Println(URL)
+		resp, err := http.Get(URL)
+		if err != nil {
+			return nil, err
+		}
+		// While response is not 200
+		for resp.StatusCode != 200 {
+			// Try less pageSize
+			pageSize--
+			URL = GenerateURL(page, pageSize, year, period, "")
+			fmt.Println(URL)
+			resp, err = http.Get(URL)
+			if err != nil {
+				return nil, err
+			}
+		}
+		defer resp.Body.Close()
+		nextResponse := &FRAPIResponse{Year: strconv.Itoa(year), Period: fmt.Sprintf("trimester_%d", period)}
+		err = tools.JSONToStruct(resp, nextResponse)
+		if err != nil {
+			return nil, err
+		}
+
+		aggregatedResponse.Results = append(aggregatedResponse.Results, nextResponse.Results...)
+		page++
+		resultLeft -= pageSize
+		// Return pageSize to 50
+		pageSize = 50
+	}
+
+	// Filter aggregatedResponse.Results
+	aggregatedResponse.Results = removeDuplicates(aggregatedResponse.Results)
+
+	return aggregatedResponse, nil
+}
+
+func removeDuplicates(elements []Result) []Result {
+	// Use map to record duplicates as we find them.
+	encountered := map[string]bool{}
+	result := []Result{}
+
+	for _, el := range elements {
+		fmt.Println(el.KodeEmiten)
+		if encountered[el.KodeEmiten] == true {
+			// Do not add duplicate.
+		} else {
+			// Record this element as an encountered element.
+			encountered[el.KodeEmiten] = true
+			// Append to result slice.
+			result = append(result, el)
+		}
+	}
+	// Return the new slice.
+	return result
 }
