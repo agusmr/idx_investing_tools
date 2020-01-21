@@ -37,16 +37,19 @@ func main() {
 		netIncome := file.NetIncome()
 		ROA := file.ROA()
 
-		fmt.Printf("Entity Name: %s \n", entityName)
-		fmt.Printf("Entity Code: %s \n", entityCode)
-		fmt.Printf("Current total assets %f \n", totalAssetsCurrent)
-		fmt.Printf("Previous total assets %f \n", totalAssetsPrevious)
-		fmt.Printf("Net Income %f \n", netIncome)
-		fmt.Printf("ROA %f \n", ROA)
+		if ROA > 0.24 {
+			fmt.Printf("Entity Name: %s \n", entityName)
+			fmt.Printf("Entity Code: %s \n", entityCode)
+			fmt.Printf("Current total assets %f \n", totalAssetsCurrent)
+			fmt.Printf("Previous total assets %f \n", totalAssetsPrevious)
+			fmt.Printf("Net Income %f \n", netIncome)
+			fmt.Printf("ROA %f \n", ROA)
 
-		fmt.Println("==================================")
-		fmt.Println("----------------------------------")
-		fmt.Println()
+			fmt.Println("==================================")
+			fmt.Println("----------------------------------")
+			fmt.Println()
+		}
+
 	}
 
 }
