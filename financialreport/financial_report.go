@@ -11,8 +11,8 @@ import (
 	"github.com/kevinjanada/idx_investing_tools/tools"
 )
 
-// FinancialReports -- Json response from IDX get financial report API
-type FinancialReports struct {
+// FinancialReportAPIResponse -- Json response from IDX get financial report API
+type FinancialReportAPIResponse struct {
 	Year        string
 	Period      string
 	Search      Search   `json:"Search"`
@@ -20,7 +20,7 @@ type FinancialReports struct {
 	Results     []Result `json:"Results"`
 }
 
-// Search -- FinancialReports Search field
+// Search -- FinancialReportAPIResponse Search field
 type Search struct {
 	ReportType string `json:"ReportType"`
 	KodeEmiten string `json:"KodeEmiten"`
@@ -30,7 +30,7 @@ type Search struct {
 	Pagesize   int    `json:"pagesize"`
 }
 
-// Result -- FinancialReports Search Results
+// Result -- FinancialReportAPIResponse Search Results
 type Result struct {
 	KodeEmiten   string       `json:"KodeEmiten"`
 	FileModified string       `json:"File_Modified"`
@@ -40,7 +40,7 @@ type Result struct {
 	Attachments  []Attachment `json:"Attachments"`
 }
 
-// Attachment -- FinancialReports Attachment object
+// Attachment -- FinancialReportAPIResponse Attachment object
 type Attachment struct {
 	EmitenCode   string `json:"Emiten_Code"`
 	FileID       string `json:"File_ID"`
@@ -56,7 +56,7 @@ type Attachment struct {
 }
 
 // Print -- Pretty Print  struct
-func (fr *FinancialReports) Print() {
+func (fr *FinancialReportAPIResponse) Print() {
 	res, err := json.MarshalIndent(fr, "", "\t")
 	if err != nil {
 		panic(err)
@@ -65,7 +65,7 @@ func (fr *FinancialReports) Print() {
 }
 
 // GetExcelReportLinks -- Return download links of all excel reports
-func (fr *FinancialReports) GetExcelReportLinks() []Attachment {
+func (fr *FinancialReportAPIResponse) GetExcelReportLinks() []Attachment {
 	attachments := []Attachment{}
 	for _, res := range fr.Results {
 		for _, att := range res.Attachments {
@@ -78,7 +78,7 @@ func (fr *FinancialReports) GetExcelReportLinks() []Attachment {
 }
 
 // DownloadExcelReports -- Download all available excel reports
-func (fr *FinancialReports) DownloadExcelReports() error {
+func (fr *FinancialReportAPIResponse) DownloadExcelReports() error {
 	excelReportLinks := fr.GetExcelReportLinks()
 	for _, report := range excelReportLinks {
 		directory := filepath.Join("files", "excel_reports", fr.Year, fr.Period)
@@ -102,7 +102,7 @@ func GenerateURL(page int, pageSize int, year int, period int) string {
 }
 
 // GetFinancialReports -- Return FinancialReport struct for the selected year and period (trimester/triwulan)
-func GetFinancialReports(year int, period int) *FinancialReports {
+func GetFinancialReports(year int, period int) *FinancialReportAPIResponse {
 	URL := GenerateURL(0, 1000, year, period)
 	resp, err := http.Get(URL)
 	if err != nil {
@@ -112,10 +112,10 @@ func GetFinancialReports(year int, period int) *FinancialReports {
 
 	body, err := ioutil.ReadAll(resp.Body)
 
-	financialReports := &FinancialReports{Year: strconv.Itoa(year), Period: fmt.Sprintf("trimester_%d", period)}
-	err = json.Unmarshal([]byte(body), financialReports)
+	financialReportResponse := &FinancialReportAPIResponse{Year: strconv.Itoa(year), Period: fmt.Sprintf("trimester_%d", period)}
+	err = json.Unmarshal([]byte(body), financialReportResponse)
 	if err != nil {
 		fmt.Println(err)
 	}
-	return financialReports
+	return financialReportResponse
 }

@@ -3,7 +3,7 @@ module github.com/kevinjanada/idx_investing_tools
 go 1.13
 
 require (
-	github.com/360EntSecGroup-Skylar/excelize v1.4.1 // indirect
+	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/andybalholm/cascadia v1.1.0 // indirect
 	github.com/antchfx/htmlquery v1.2.2 // indirect
 	github.com/antchfx/xmlquery v1.2.3 // indirect
