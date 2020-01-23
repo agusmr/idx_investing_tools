@@ -104,43 +104,21 @@ func GenerateURL(page int, pageSize int, year int, period int, emitenCode string
 
 // GetFinancialReports -- Return FinancialReport struct for the selected year and period (trimester/triwulan)
 func GetFinancialReports(year int, period int) (*FRAPIResponse, error) {
-	page := 1
-	pageSize := 50
-	URL := GenerateURL(page, pageSize, year, period, "")
-
-	resp, err := http.Get(URL)
+	stocks, err := FetchStocksFromDB()
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	page := 1
+	pageSize := 1
 
 	aggregatedResponse := &FRAPIResponse{Year: strconv.Itoa(year), Period: fmt.Sprintf("trimester_%d", period)}
-	tools.JSONToStruct(resp, aggregatedResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	resultCount := aggregatedResponse.ResultCount
-	resultLeft := resultCount
-	// While there are still result left
-	for resultLeft > 0 {
-		URL = GenerateURL(page, pageSize, year, period, "")
-		fmt.Println(URL)
+	for _, s := range stocks {
+		URL := GenerateURL(page, pageSize, year, period, s.Code)
 		resp, err := http.Get(URL)
 		if err != nil {
 			return nil, err
 		}
-		// While response is not 200
-		for resp.StatusCode != 200 {
-			// Try less pageSize
-			pageSize--
-			URL = GenerateURL(page, pageSize, year, period, "")
-			fmt.Println(URL)
-			resp, err = http.Get(URL)
-			if err != nil {
-				return nil, err
-			}
-		}
+
 		defer resp.Body.Close()
 		nextResponse := &FRAPIResponse{Year: strconv.Itoa(year), Period: fmt.Sprintf("trimester_%d", period)}
 		err = tools.JSONToStruct(resp, nextResponse)
@@ -149,14 +127,7 @@ func GetFinancialReports(year int, period int) (*FRAPIResponse, error) {
 		}
 
 		aggregatedResponse.Results = append(aggregatedResponse.Results, nextResponse.Results...)
-		page++
-		resultLeft -= pageSize
-		// Return pageSize to 50
-		pageSize = 50
 	}
-
-	// Filter aggregatedResponse.Results
-	aggregatedResponse.Results = removeDuplicates(aggregatedResponse.Results)
 
 	return aggregatedResponse, nil
 }

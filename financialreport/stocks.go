@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gobuffalo/pop"
+	"github.com/kevinjanada/idx_investing_tools/models"
 	"github.com/kevinjanada/idx_investing_tools/tools"
 )
 
@@ -38,7 +40,23 @@ func GenerateFetchStockURL(start int, length int) string {
 	)
 }
 
-// FetchStocks --
+// FetchStocksFromDB -- Fetch Stocks Data from local DB
+func FetchStocksFromDB() ([]models.Stock, error) {
+	tx, err := pop.Connect("development")
+	if err != nil {
+		return nil, err
+	}
+
+	stocks := []models.Stock{}
+	err = tx.All(&stocks)
+	if err != nil {
+		return nil, err
+	}
+
+	return stocks, nil
+}
+
+// FetchStocks -- Fetch Stocks Data from IDX API
 func FetchStocks() ([]Stock, error) {
 	start := 0
 	length := 10

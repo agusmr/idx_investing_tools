@@ -1,0 +1,7 @@
+development:
+  dialect: postgres
+  database: idx_investing_tools_api_development
+  user: postgres
+  password: postgres
+  host: 127.0.0.1
+  pool: 5
