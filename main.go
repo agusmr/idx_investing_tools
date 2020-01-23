@@ -3,10 +3,17 @@ package main
 import (
 	"fmt"
 
-	fr "github.com/kevinjanada/idx_investing_tools/financialreport"
+	"github.com/kevinjanada/idx_investing_tools/services"
 )
 
 func main() {
-	stocks, _ := fr.FetchStocksFromDB()
-	fmt.Printf("%+v", stocks)
+	frService := services.FinancialReportService{}
+	err := frService.FetchFinancialReports(2017, 3)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+	}
+	err = frService.DownloadExcelReports()
+	if err != nil {
+		fmt.Printf("%v\n", err)
+	}
 }

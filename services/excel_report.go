@@ -1,4 +1,4 @@
-package financialreport
+package services
 
 import (
 	//"fmt"
@@ -76,7 +76,7 @@ func OpenExcelFilesInDir(directory string) ([]*ExcelReport, error) {
 	}
 
 	for _, path := range filepaths {
-		f, err := OpenExcelFile(path)
+		f, err := NewExcelReport(path)
 		if err != nil {
 			continue
 		}
@@ -85,8 +85,8 @@ func OpenExcelFilesInDir(directory string) ([]*ExcelReport, error) {
 	return files, nil
 }
 
-// OpenExcelFile -- Open an excel file and instantiate ExcelReport struct
-func OpenExcelFile(filepath string) (*ExcelReport, error) {
+// NewExcelReport -- Open an excel file and instantiate ExcelReport struct
+func NewExcelReport(filepath string) (*ExcelReport, error) {
 	f, err := excelize.OpenFile(filepath)
 	if err != nil {
 		return nil, err
