@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kevinjanada/idx_investing_tools/constants"
 	"github.com/kevinjanada/idx_investing_tools/services"
 )
 
@@ -25,8 +26,8 @@ func main() {
 		// Insert Total Assets
 		err = statementService.InsertUpdateStatementRow(
 			stockCode,
-			services.StatementFinancialPosition,
-			services.RowTotalAssets,
+			constants.StatementFinancialPosition,
+			constants.RowTotalAssets,
 			stockTotalAssets,
 			date,
 		)
@@ -37,8 +38,8 @@ func main() {
 		// Insert Net Income
 		err = statementService.InsertUpdateStatementRow(
 			stockCode,
-			services.StatementProfitOrLoss,
-			services.RowNetIncome,
+			constants.StatementProfitOrLoss,
+			constants.RowNetIncome,
 			stockNetIncome,
 			date,
 		)

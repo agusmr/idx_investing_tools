@@ -9,18 +9,6 @@ import (
 	"github.com/kevinjanada/idx_investing_tools/models"
 )
 
-// StatementFinancialPosition -- Constant
-const StatementFinancialPosition = "financial position"
-
-// StatementProfitOrLoss -- Constant
-const StatementProfitOrLoss = "profit or loss"
-
-// RowTotalAssets -- Constant
-const RowTotalAssets = "total assets"
-
-// RowNetIncome -- Constant
-const RowNetIncome = "net income"
-
 // StatementService -- Services for creating and modifying financial statements data in DB
 type StatementService struct {
 	DB *pop.Connection
