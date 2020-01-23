@@ -9,7 +9,7 @@ import (
 	"github.com/kevinjanada/idx_investing_tools/tools"
 )
 
-type Stock struct {
+type StockData struct {
 	Code         string `json:"Code"`
 	Name         string `json:"Name"`
 	ListingDate  string `json:"ListingDate"`
@@ -25,10 +25,10 @@ type Link struct {
 }
 
 type StockAPIResponse struct {
-	Draw            int     `json:"draw"`
-	RecordsTotal    int     `json:"recordsTotal"`
-	RecordsFiltered int     `json:"recordsFiltered"`
-	Data            []Stock `json:"data"`
+	Draw            int         `json:"draw"`
+	RecordsTotal    int         `json:"recordsTotal"`
+	RecordsFiltered int         `json:"recordsFiltered"`
+	Data            []StockData `json:"data"`
 }
 
 // GenerateFetchStockURL --
@@ -57,7 +57,7 @@ func FetchStocksFromDB() ([]models.Stock, error) {
 }
 
 // FetchStocks -- Fetch Stocks Data from IDX API
-func FetchStocks() ([]Stock, error) {
+func FetchStocks() ([]StockData, error) {
 	start := 0
 	length := 10
 	URL := GenerateFetchStockURL(start, length)

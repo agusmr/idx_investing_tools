@@ -2,13 +2,15 @@ package services
 
 import (
 	//"fmt"
-	"github.com/360EntSecGroup-Skylar/excelize"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/360EntSecGroup-Skylar/excelize"
 )
 
 // ExcelReport --
@@ -76,6 +78,7 @@ func OpenExcelFilesInDir(directory string) ([]*ExcelReport, error) {
 	}
 
 	for _, path := range filepaths {
+		fmt.Printf("Opening file %s\n", path)
 		f, err := NewExcelReport(path)
 		if err != nil {
 			continue
@@ -100,7 +103,7 @@ func NewExcelReport(filepath string) (*ExcelReport, error) {
 func ArrangeWorksheets(worksheetMap map[int]string) []string {
 	var worksheets []string
 	var indexes []int
-	for index, _ := range worksheetMap {
+	for index := range worksheetMap {
 		indexes = append(indexes, index)
 	}
 	sort.Ints(indexes)
