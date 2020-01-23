@@ -1,0 +1,9 @@
+create_table("stocks") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("code", "string", {})
+	t.Column("name", "string", {})
+	t.Column("listing_date", "string", {})
+	t.Column("shares", "bigint", {})
+	t.Column("listing_board", "string", {})
+	t.Timestamps()
+}

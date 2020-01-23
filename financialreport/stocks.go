@@ -42,7 +42,7 @@ func GenerateFetchStockURL(start int, length int) string {
 
 // FetchStocksFromDB -- Fetch Stocks Data from local DB
 func FetchStocksFromDB() ([]models.Stock, error) {
-	tx, err := pop.Connect("development")
+	tx, err := pop.Connect("api_development")
 	if err != nil {
 		return nil, err
 	}

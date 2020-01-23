@@ -1,0 +1,9 @@
+create_table("statement_rows") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("statement_id", "uuid", {})
+	t.Column("row_title_id", "uuid", {})
+	t.Column("row_order", "integer", {null: true})
+	t.Column("row_description", "integer", {null: true})
+	t.Column("row_properties", "integer", {null: true})
+	t.Timestamps()
+}

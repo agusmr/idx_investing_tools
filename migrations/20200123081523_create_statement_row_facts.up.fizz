@@ -1,0 +1,8 @@
+create_table("statement_row_facts") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("statement_row_id", "uuid", {})
+	t.Column("stock_id", "uuid", {})
+	t.Column("date", "timestamp", {})
+	t.Column("amount", "decimal", {})
+	t.Timestamps()
+}

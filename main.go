@@ -7,10 +7,6 @@ import (
 )
 
 func main() {
-	frReportResponses, err := fr.GetFinancialReports(2018, 3)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	frReportResponses.DownloadExcelReports()
+	stocks, _ := fr.FetchStocksFromDB()
+	fmt.Printf("%+v", stocks)
 }
