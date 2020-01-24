@@ -15,8 +15,8 @@ type StatementService struct {
 }
 
 // NewStatementService -- StatementService constructor
-func NewStatementService() *StatementService {
-	db, err := pop.Connect("tools_development")
+func NewStatementService(connectionEnv string) *StatementService {
+	db, err := pop.Connect(connectionEnv)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -85,7 +85,7 @@ func (s *StatementService) InsertUpdateStatementRow(
 	}
 
 	// Check If exists statement row with the same row title, date, and stock id
-	statementRow := s.statementRowExists(statementRowTitle.ID, stock.ID, date)
+	statementRow := s.StatementRowExists(statementRowTitle.ID, stock.ID, date)
 	// If exists, Update the statementRowFact
 	if statementRow != nil {
 		statementRowFact := &models.StatementRowFact{}
@@ -125,10 +125,21 @@ func (s *StatementService) InsertUpdateStatementRow(
 	return nil
 }
 
-func (s *StatementService) statementRowExists(statementRowTitleID uuid.UUID, stockID uuid.UUID, date time.Time) *models.StatementRow {
+// StatementRowExists --
+func (s *StatementService) StatementRowExists(statementRowTitleID uuid.UUID, stockID uuid.UUID, date time.Time) *models.StatementRow {
 	// Check If exists statement row with the same row title, date, and stock id
 	statementRow := &models.StatementRow{}
-	s.DB.RawQuery(`
+	dateString := date.Format("2006-01-02 15:04:05")
+	// dateString := "2017-09-30 00:00:00"
+	// fmt.Println(dateString)
+	rowTitleIDString := statementRowTitleID.String()
+	// rowTitleIDString := "18374f1e-d432-4058-8597-a8ef471eecdf"
+	// fmt.Println(rowTitleIDString)
+	stockIDString := stockID.String()
+	// stockIDString := "b227b28b-3139-458a-b38d-11c64ec1f9f1"
+	// fmt.Println(stockIDString)
+
+	queryString := fmt.Sprintf(`
 		SELECT  
 		sr.id, sr.statement_id, sr.row_description,
 		sr.row_order, sr.row_properties, sr.row_title_id
@@ -138,12 +149,23 @@ func (s *StatementService) statementRowExists(statementRowTitleID uuid.UUID, sto
 		JOIN statement_row_facts srf
 		ON srf.statement_row_id = sr.id
 		WHERE 
-		srt.id = $1 AND
-		srf.date = $2 AND
-		srf.stock_id = $3
-	`, statementRowTitleID, date, stockID)
+		srt.id = '%s' AND
+		srf.date = '%s' AND
+		srf.stock_id = '%s';
+	`, rowTitleIDString, dateString, stockIDString)
 
+	query := s.DB.RawQuery(queryString)
+
+	err := query.First(statementRow)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// fmt.Println(statementRow)
+
+	// fmt.Printf("%v\n", statementRow)
 	if statementRow.ID != uuid.Nil {
+		fmt.Println("Statement row exists")
 		return statementRow
 	}
 	return nil

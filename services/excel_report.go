@@ -58,6 +58,19 @@ func (exRep *ExcelReport) NetIncome() float64 {
 	return excelFloatToFloat(strVal)
 }
 
+func (exRep *ExcelReport) PreferredStock() float64 {
+	sheetName := exRep.Worksheets[4]
+	eqPosEndOfPeriodCell := exRep.File.SearchSheet(sheetName, "Equity position, end of the period")[0]
+	eqPosEndOfPeriodRow := eqPosEndOfPeriodCell[1:]
+
+	preferredStocksCell := exRep.File.SearchSheet(sheetName, "Preferred stocks")[0]
+	preferredStocksCol := preferredStocksCell[:1]
+
+	endOfPeriodPreferredStockValueCell := preferredStocksCol + eqPosEndOfPeriodRow
+	strVal := exRep.File.GetCellValue(sheetName, endOfPeriodPreferredStockValueCell)
+	return excelFloatToFloat(strVal)
+}
+
 func (exRep *ExcelReport) ROA() float64 {
 	averageAssets := (exRep.TotalAssets() + exRep.TotalAssetsPrevious()) / 2
 	ROA := exRep.NetIncome() / averageAssets
