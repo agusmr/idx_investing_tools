@@ -4,18 +4,33 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop"
+	"github.com/gofrs/uuid"
 	"github.com/kevinjanada/idx_investing_tools/models"
 	"github.com/kevinjanada/idx_investing_tools/tools"
 )
 
+type StockService struct {
+	DB *pop.Connection
+}
+
+func NewStockService(connectionKey string) (*StockService, error) {
+	db, err := pop.Connect(connectionKey)
+	if err != nil {
+		return nil, err
+	}
+	service := &StockService{DB: db}
+	return service, nil
+}
+
 type StockData struct {
-	Code         string `json:"Code"`
-	Name         string `json:"Name"`
-	ListingDate  string `json:"ListingDate"`
-	Shares       int64  `json:"Shares"`
-	ListingBoard string `json:"ListingBoard"`
-	Links        []Link `json:"Links"`
+	Code         string       `json:"Code"`
+	Name         string       `json:"Name"`
+	ListingDate  string       `json:"ListingDate"`
+	Shares       int64        `json:"Shares"`
+	ListingBoard nulls.String `json:"ListingBoard"`
+	Links        []Link       `json:"Links"`
 }
 
 type Link struct {
@@ -31,8 +46,8 @@ type StockAPIResponse struct {
 	Data            []StockData `json:"data"`
 }
 
-// GenerateFetchStockURL --
-func GenerateFetchStockURL(start int, length int) string {
+// generateFetchStockURL --
+func generateFetchStockURL(start int, length int) string {
 	return fmt.Sprintf(
 		`https://www.idx.co.id/umbraco/Surface/StockData/GetSecuritiesStock?start=%d&length=%d`,
 		start,
@@ -41,14 +56,9 @@ func GenerateFetchStockURL(start int, length int) string {
 }
 
 // FetchStocksFromDB -- Fetch Stocks Data from local DB
-func FetchStocksFromDB() ([]models.Stock, error) {
-	tx, err := pop.Connect("api_development")
-	if err != nil {
-		return nil, err
-	}
-
+func (s *StockService) FetchStocksFromDB() ([]models.Stock, error) {
 	stocks := []models.Stock{}
-	err = tx.All(&stocks)
+	err := s.DB.All(&stocks)
 	if err != nil {
 		return nil, err
 	}
@@ -57,10 +67,10 @@ func FetchStocksFromDB() ([]models.Stock, error) {
 }
 
 // FetchStocks -- Fetch Stocks Data from IDX API
-func FetchStocks() ([]StockData, error) {
+func (s *StockService) FetchStocks() ([]StockData, error) {
 	start := 0
 	length := 10
-	URL := GenerateFetchStockURL(start, length)
+	URL := generateFetchStockURL(start, length)
 	resp, err := http.Get(URL)
 	if err != nil {
 		return nil, err
@@ -73,7 +83,7 @@ func FetchStocks() ([]StockData, error) {
 	numOfStocksLeft := aggregatedResponse.RecordsTotal
 	start += length
 	for numOfStocksLeft > 0 {
-		URL := GenerateFetchStockURL(start, length)
+		URL := generateFetchStockURL(start, length)
 		resp, err := http.Get(URL)
 		if err != nil {
 			return nil, err
@@ -90,4 +100,31 @@ func FetchStocks() ([]StockData, error) {
 	}
 
 	return aggregatedResponse.Data, nil
+}
+
+// SaveStockDataToDB -- Receive Stock Data and save them all to database
+func (s *StockService) SaveStockDataToDB(stocksData []StockData) error {
+	for _, sd := range stocksData {
+		stockModel := &models.Stock{}
+		query := s.DB.Where("code = ?", sd.Code)
+		err := query.First(stockModel)
+		if err != nil {
+			fmt.Println(err)
+		}
+		// If stock exists, update
+		if stockModel.ID != uuid.Nil {
+			stockModel.Shares = sd.Shares
+			stockModel.ListingBoard = sd.ListingBoard
+		} else { // Else Create
+			stockModel = &models.Stock{
+				Code:         sd.Code,
+				Name:         sd.Name,
+				ListingDate:  sd.ListingDate,
+				Shares:       sd.Shares,
+				ListingBoard: sd.ListingBoard,
+			}
+		}
+		err = s.DB.Save(stockModel)
+	}
+	return nil
 }

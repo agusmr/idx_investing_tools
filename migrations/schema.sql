@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 12.1
--- Dumped by pg_dump version 12.1
+-- Dumped from database version 11.5 (Ubuntu 11.5-1)
+-- Dumped by pg_dump version 11.5 (Ubuntu 11.5-1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,7 +18,7 @@ SET row_security = off;
 
 SET default_tablespace = '';
 
-SET default_table_access_method = heap;
+SET default_with_oids = false;
 
 --
 -- Name: schema_migration; Type: TABLE; Schema: public; Owner: postgres
@@ -71,8 +71,8 @@ CREATE TABLE public.statement_rows (
     statement_id uuid NOT NULL,
     row_title_id uuid NOT NULL,
     row_order integer,
-    row_description integer,
-    row_properties integer,
+    row_description character varying(255),
+    row_properties character varying(255),
     created_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL
 );

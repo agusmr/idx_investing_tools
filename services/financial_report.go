@@ -21,7 +21,11 @@ type FinancialReportService struct {
 // 		Fetch Financial Reports Data from IDX API.
 //		Return FinancialReport struct for the selected year and period (trimester/triwulan)
 func (frService *FinancialReportService) FetchFinancialReports(year int, period int) error {
-	stocks, err := FetchStocksFromDB()
+	stockService, err := NewStockService("tools_development")
+	if err != nil {
+		return err
+	}
+	stocks, err := stockService.FetchStocksFromDB()
 	if err != nil {
 		return err
 	}
@@ -56,7 +60,10 @@ func (frService *FinancialReportService) DownloadExcelReports() error {
 	if frService.FinancialReportAPIResponse == nil {
 		return errors.New("You need to FetchFinancialReports() first")
 	}
-	frService.FinancialReportAPIResponse.DownloadExcelReports()
+	err := frService.FinancialReportAPIResponse.DownloadExcelReports()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
