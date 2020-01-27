@@ -151,8 +151,8 @@ func (fr *FinancialReportAPIResponse) Print() {
 	fmt.Printf("%+v\n", string(res))
 }
 
-// GetExcelReportLinks -- Return download links of all excel reports
-func (fr *FinancialReportAPIResponse) GetExcelReportLinks() []Attachment {
+// GetExcelReportLinks -- Return attachments data of type excel
+func (fr *FinancialReportAPIResponse) GetExcelAttachments() []Attachment {
 	attachments := []Attachment{}
 	for _, res := range fr.Results {
 		for _, att := range res.Attachments {
@@ -166,10 +166,10 @@ func (fr *FinancialReportAPIResponse) GetExcelReportLinks() []Attachment {
 
 // DownloadExcelReports -- Download all available excel reports
 func (fr *FinancialReportAPIResponse) DownloadExcelReports() error {
-	excelReportLinks := fr.GetExcelReportLinks()
-	for _, report := range excelReportLinks {
+	excelAttachments := fr.GetExcelAttachments()
+	for _, att := range excelAttachments {
 		directory := filepath.Join("files", "excel_reports", fr.Year, fr.Period)
-		err := tools.Download(directory, report.FileName, report.FilePath)
+		err := tools.Download(directory, att.FileName, att.FilePath)
 		if err != nil {
 			fmt.Println(err)
 		}

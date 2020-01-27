@@ -15,7 +15,7 @@ func Download(directory string, filename string, url string) error {
 	if info != nil {
 		return fmt.Errorf("%s already exists", info.Name())
 	}
-	fmt.Printf("Downloading %s", filename)
+	fmt.Printf("Downloading %s \n", filename)
 
 	mode := int(0755)
 	err = os.MkdirAll(directory, os.FileMode(mode))
