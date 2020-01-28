@@ -12,6 +12,8 @@ import (
 
 var commands = []string{
 	"get-reports",
+	"update-stock-list",
+	"save-report",
 }
 
 func main() {
@@ -33,6 +35,20 @@ func main() {
 		"Period of the year in trimester {1|2|3}",
 	)
 
+	// -- save-stock-data
+	saveReportCommand := flag.NewFlagSet("save-report", flag.ExitOnError)
+	// -- -- save-stock-data flags
+	saveReportFilePathPtr := saveReportCommand.String(
+		"file",
+		"",
+		"File path",
+	)
+	saveReportDirPathPtr := saveReportCommand.String(
+		"dir",
+		"",
+		"Directory path",
+	)
+
 	// No Subcommands error handler
 	if len(os.Args) < 2 {
 		//fmt.Println("")
@@ -49,7 +65,9 @@ func main() {
 	case "get-reports":
 		getReportsCommand.Parse(os.Args[2:])
 	case "update-stock-list":
-		updateStockListCommand.Parse(os.Args)
+		updateStockListCommand.Parse(os.Args) // Here args not used, but need to be passed in
+	case "save-report":
+		saveReportCommand.Parse(os.Args[2:])
 	default:
 		flag.PrintDefaults()
 		os.Exit(1)
@@ -85,6 +103,40 @@ func main() {
 		}
 		fmt.Println("Download reports finished")
 		os.Exit(0)
+	}
+
+	if saveReportCommand.Parsed() {
+		if *saveReportFilePathPtr == "" && *saveReportDirPathPtr == "" {
+			saveReportCommand.PrintDefaults()
+			os.Exit(1)
+		}
+		if *saveReportFilePathPtr != "" && *saveReportDirPathPtr != "" {
+			fmt.Println("Cannot use both -file and -dir at the same time")
+			saveReportCommand.PrintDefaults()
+			os.Exit(1)
+		}
+		if *saveReportFilePathPtr != "" {
+			// Handle Save Stock Data File
+			//fmt.Println(*saveReportFilePathPtr)
+			filePath := *saveReportFilePathPtr
+			err := handlers.SaveReportFile(filePath)
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println("Save report finished")
+			os.Exit(0)
+		}
+		if *saveReportDirPathPtr != "" {
+			// Handle Save Stock Data directory
+			//fmt.Println(*saveReportDirPathPtr)
+			dirPath := *saveReportDirPathPtr
+			err := handlers.SaveReportDir(dirPath)
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println("Save report finished")
+			os.Exit(0)
+		}
 	}
 
 	//excelReports, err := services.OpenExcelFilesInDir("files/excel_reports/2017/trimester_3")

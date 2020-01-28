@@ -15,13 +15,13 @@ type StatementService struct {
 }
 
 // NewStatementService -- StatementService constructor
-func NewStatementService(connectionEnv string) *StatementService {
+func NewStatementService(connectionEnv string) (*StatementService, error) {
 	db, err := pop.Connect(connectionEnv)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	service := &StatementService{DB: db}
-	return service
+	return service, nil
 }
 
 // NewStatement -- Create a new statement name in DB
@@ -41,8 +41,8 @@ func (s *StatementService) NewStatement(statementName string) error {
 	return nil
 }
 
-// NewStatementRowTitle -- Create a new statement row title in DB
-func (s *StatementService) NewStatementRowTitle(rowTitle string) error {
+// InsertRowTitle -- Create a new statement row title in DB
+func (s *StatementService) InsertRowTitle(rowTitle string) error {
 	statementRowTitle := &models.StatementRowTitle{}
 	s.DB.Where("name = $1", rowTitle).First(statementRowTitle)
 
@@ -56,6 +56,15 @@ func (s *StatementService) NewStatementRowTitle(rowTitle string) error {
 		return err
 	}
 	return nil
+}
+
+func (s *StatementService) GetRowTitle(rowTitle string) (*models.StatementRowTitle, error) {
+	statementRowTitle := &models.StatementRowTitle{}
+	s.DB.Where("name = $1", rowTitle).First(statementRowTitle)
+	if statementRowTitle.ID == uuid.Nil {
+		return nil, fmt.Errorf("Row title not found")
+	}
+	return statementRowTitle, nil
 }
 
 // InsertUpdateStatementRow -- Insert information row to a stock's statement
