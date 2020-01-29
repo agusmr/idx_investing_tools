@@ -1,7 +1,6 @@
 package services
 
 import (
-	//"fmt"
 	"fmt"
 	"math"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 )
@@ -87,14 +87,41 @@ func (ex *ExcelReportService) LoadDir(dirPath string) ([]*ExcelReport, error) {
 **/
 func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 	sheetNames := []string{
+		"general information",
 		"financial position",
 		"profit or loss",
 	}
-	//statementService, err := NewStatementService("tools_development")
-	//if err != nil {
-	//return err
-	//}
-	for _, sn := range sheetNames {
+	statementService, err := NewStatementService("tools_development")
+	if err != nil {
+		return err
+	}
+	var stockCode string
+	var dateString string
+	// Get Stock Code and Date
+	sheetIndex, ok := ex.SheetNames[sheetNames[0]]
+	if !ok {
+		return fmt.Errorf("sheet name: %s does not exist", sheetNames[0])
+	}
+	stockCodeCell := "B7"
+	dateCell := "B4"
+	// Get Stock Code ----
+	stockCode = exRep.GetContent(sheetIndex, stockCodeCell)
+	if stockCode == "" {
+		return fmt.Errorf("Stock code not found on report")
+	}
+	// ----
+	// Get and convert date -----
+	dateString = exRep.GetContent(sheetIndex, dateCell)
+	if dateString == "" {
+		return fmt.Errorf("Date not found on report")
+	}
+	date, err := convertReportDateToTime(dateString)
+	if err != nil || date.IsZero() {
+		return fmt.Errorf("Error in converting report date to time.Time")
+	}
+	// -----
+
+	for _, sn := range sheetNames[1:] {
 		sheetIndex, ok := ex.SheetNames[sn]
 		if !ok {
 			return fmt.Errorf("sheet name: %s does not exist", sn)
@@ -102,9 +129,10 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 		// Iterate through sheet rows
 		row := 5
 		titleCol := "D"
-		valueCol := "B"
+		amountCol := "B"
 		var title string
 		for {
+			// Get row title from excel report
 			titleCell := fmt.Sprintf("%s%d", titleCol, row)
 			title = exRep.GetContent(sheetIndex, titleCell)
 			if title == "" {
@@ -112,35 +140,33 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 			}
 			//if row title !exists in db:
 			//insert title to db
-			//statementService.NewStatementRowTitle(title)
-			fmt.Println("Title: ", title)
+			_ = statementService.InsertRowTitle(title)
+			rowTitle, err := statementService.GetRowTitle(title)
+			if err != nil {
+				fmt.Println("is it here?")
+				return err
+			}
 
-			//get row_fact from db
-			//where
-			//row_fact->date == date and
-			//row_fact->stock_code == stock_code
-			//row_fact->row_id == row
-			//where row->row_title_id == title->id
+			// Get row amount from excel report
+			amountCell := fmt.Sprintf("%s%d", amountCol, row)
+			stringAmount := exRep.GetContent(sheetIndex, amountCell)
+			floatAmount := excelFloatToFloat(stringAmount)
 
-			valueCell := fmt.Sprintf("%s%d", valueCol, row)
-			// Save value to db
-			value := exRep.GetContent(sheetIndex, valueCell)
-			fmt.Println("Value: ", value)
-			//if row_fact exists:
-			//row_fact->amount = row_amount
-			//save(row_fact)
-			//else:
-			//row = new row {
-			//row_title_id = title->id
+			//Get row fact from DB
+			//rowFact, err := statementService.GetRowFact(rowTitle.Title, stockCode, date)
+			////If row fact exists
+			//if rowFact != nil {
+			//Update
+			//rowFact.Amount = floatAmount
+			//err = statementService.UpdateRowFact(rowFact)
+			//if err != nil {
+			//return err
 			//}
-
-			//get the created row from db
-
-			//row_fact = new row_fact {
-			//row_id = row->id
-			//amount = amount
-			//date = date
-			//}
+			//} else {
+			err = statementService.InsertUpdateStatementRow(stockCode, sn, rowTitle.Title, floatAmount, date)
+			if err != nil {
+				return err
+			}
 
 			row++
 		}
@@ -293,4 +319,25 @@ func prepend(stringSlice []string, elem string) []string {
 func insert(strSlice []string, elem string, i int) []string {
 	strSlice = append(strSlice[:i], append([]string{elem}, strSlice[i:]...)...)
 	return strSlice
+}
+
+// convertReportDateToTime -- Helper to convert date in excel report to time.Time
+func convertReportDateToTime(dateString string) (time.Time, error) {
+	if dateString[0] == '\'' {
+		dateString = dateString[1:]
+	}
+	dateSplit := strings.Split(dateString, " ")
+	day := dateSplit[0]
+	month := dateSplit[1]
+	year := dateSplit[2]
+
+	month = month[:3]
+	year = year[2:]
+
+	finalDateString := day + " " + month + " " + year + " 00:00 GMT+7"
+	t, err := time.Parse(time.RFC822, finalDateString)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t, nil
 }

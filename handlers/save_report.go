@@ -13,6 +13,9 @@ func SaveReportFile(filePath string) error {
 		return err
 	}
 	err = exRepService.SaveReportToDB(exFile)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

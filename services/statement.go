@@ -44,7 +44,7 @@ func (s *StatementService) NewStatement(statementName string) error {
 // InsertRowTitle -- Create a new statement row title in DB
 func (s *StatementService) InsertRowTitle(rowTitle string) error {
 	statementRowTitle := &models.StatementRowTitle{}
-	s.DB.Where("name = $1", rowTitle).First(statementRowTitle)
+	s.DB.Where("title = $1", rowTitle).First(statementRowTitle)
 
 	if statementRowTitle.ID != uuid.Nil {
 		return fmt.Errorf("Row title with that name already exists")
@@ -60,7 +60,7 @@ func (s *StatementService) InsertRowTitle(rowTitle string) error {
 
 func (s *StatementService) GetRowTitle(rowTitle string) (*models.StatementRowTitle, error) {
 	statementRowTitle := &models.StatementRowTitle{}
-	s.DB.Where("name = $1", rowTitle).First(statementRowTitle)
+	s.DB.Where("title = $1", rowTitle).First(statementRowTitle)
 	if statementRowTitle.ID == uuid.Nil {
 		return nil, fmt.Errorf("Row title not found")
 	}
@@ -132,6 +132,61 @@ func (s *StatementService) InsertUpdateStatementRow(
 		return err
 	}
 	return nil
+}
+
+func (s *StatementService) UpdateRowFact(rowFact *models.StatementRowFact) error {
+	err := s.DB.Save(rowFact)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StatementService) GetRowFact(
+	statementRowTitle string,
+	stockCode string,
+	date time.Time,
+) (
+	*models.StatementRowFact,
+	error,
+) {
+	// Get RowTitle
+	rowTitle := &models.StatementRowTitle{}
+	s.DB.Where("title = ?", statementRowTitle).First(rowTitle)
+	if rowTitle.ID == uuid.Nil {
+		return nil, fmt.Errorf("Row Title not found")
+	}
+	// Get Stock
+	stock := &models.Stock{}
+	s.DB.Where("code = ?", stockCode).First(stock)
+	if stock.ID == uuid.Nil {
+		return nil, fmt.Errorf("Stock Code not found")
+	}
+
+	// Get RowFact
+	rowFact := &models.StatementRowFact{}
+	err := s.DB.RawQuery(`
+    SELECT
+    srf.id,
+    srf.statement_row_id,
+    srf.stock_id,
+    srf.date,
+    srf.amount
+    FROM
+    statement_row_facts srf JOIN
+    statement_rows sr ON
+    srf.statement_row_id = sr.id JOIN
+    statement_row_titles srt ON
+    srt.id = sr.row_title_id
+    WHERE
+    srf.date = ? AND
+    srf.stock_id = ? AND
+    srt.title = ?
+  `, date, stock.Code, rowTitle.Title).First(rowFact)
+	if err != nil {
+		return nil, err
+	}
+	return rowFact, nil
 }
 
 // StatementRowExists --
