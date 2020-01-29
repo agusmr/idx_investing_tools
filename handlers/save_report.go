@@ -20,6 +20,16 @@ func SaveReportFile(filePath string) error {
 }
 
 func SaveReportDir(dir string) error {
-	// TODO:
+	exRepService := services.NewExcelReportService()
+	exFiles, err := exRepService.LoadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, f := range exFiles {
+		err = exRepService.SaveReportToDB(f)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

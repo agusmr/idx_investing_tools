@@ -222,14 +222,14 @@ func (s *StatementService) StatementRowExists(statementRowTitleID uuid.UUID, sto
 
 	err := query.First(statementRow)
 	if err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 	}
 
 	// fmt.Println(statementRow)
 
 	// fmt.Printf("%v\n", statementRow)
 	if statementRow.ID != uuid.Nil {
-		fmt.Println("Statement row exists")
+		//fmt.Println("Statement row exists")
 		return statementRow
 	}
 	return nil

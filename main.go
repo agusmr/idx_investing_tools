@@ -130,6 +130,7 @@ func main() {
 			// Handle Save Stock Data directory
 			//fmt.Println(*saveReportDirPathPtr)
 			dirPath := *saveReportDirPathPtr
+			fmt.Println(dirPath)
 			err := handlers.SaveReportDir(dirPath)
 			if err != nil {
 				fmt.Println(err)

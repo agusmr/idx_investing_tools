@@ -120,6 +120,7 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 		return fmt.Errorf("Error in converting report date to time.Time")
 	}
 	// -----
+	fmt.Printf("Saving %s report to DB. Please wait..\n", stockCode)
 
 	for _, sn := range sheetNames[1:] {
 		sheetIndex, ok := ex.SheetNames[sn]
@@ -152,17 +153,6 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 			stringAmount := exRep.GetContent(sheetIndex, amountCell)
 			floatAmount := excelFloatToFloat(stringAmount)
 
-			//Get row fact from DB
-			//rowFact, err := statementService.GetRowFact(rowTitle.Title, stockCode, date)
-			////If row fact exists
-			//if rowFact != nil {
-			//Update
-			//rowFact.Amount = floatAmount
-			//err = statementService.UpdateRowFact(rowFact)
-			//if err != nil {
-			//return err
-			//}
-			//} else {
 			err = statementService.InsertUpdateStatementRow(stockCode, sn, rowTitle.Title, floatAmount, date)
 			if err != nil {
 				return err
