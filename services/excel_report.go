@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
+	"github.com/gobuffalo/nulls"
 )
 
 type ExcelReportService struct {
@@ -108,6 +109,21 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 	stockCode = exRep.GetContent(sheetIndex, stockCodeCell)
 	if stockCode == "" {
 		return fmt.Errorf("Stock code not found on report")
+	}
+	// Check if Stock Code exists in DB ----
+	stockService, err := NewStockService("tools_development")
+	if err != nil {
+		return err
+	}
+	_, err = stockService.GetStockByCode(stockCode)
+	if err != nil {
+		// if stock does not exist, add it to DB with limited information
+		stockNameCell := "B5"
+		stockName := exRep.GetContent(sheetIndex, stockNameCell)
+		err = stockService.SaveStockToDB(stockCode, stockName, "-", -1, nulls.NewString("-"))
+		if err != nil {
+			return err
+		}
 	}
 	// ----
 	// Get and convert date -----

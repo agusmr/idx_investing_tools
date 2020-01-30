@@ -78,7 +78,7 @@ func (s *StatementService) InsertUpdateStatementRow(
 	stock := &models.Stock{}
 	s.DB.Where("code = $1", stockCode).First(stock)
 	if stock.ID == uuid.Nil {
-		return fmt.Errorf("Stock not found")
+		return fmt.Errorf("Stock %s not found", stockCode)
 	}
 
 	statement := &models.Statement{}

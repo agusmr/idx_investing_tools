@@ -55,6 +55,15 @@ func generateFetchStockURL(start int, length int) string {
 	)
 }
 
+func (s *StockService) GetStockByCode(stockCode string) (*models.Stock, error) {
+	stock := &models.Stock{}
+	err := s.DB.Where("code = ?", stockCode).First(stock)
+	if err != nil {
+		return nil, err
+	}
+	return stock, nil
+}
+
 // FetchStocksFromDB -- Fetch Stocks Data from local DB
 func (s *StockService) FetchStocksFromDB() ([]models.Stock, error) {
 	stocks := []models.Stock{}
@@ -100,6 +109,21 @@ func (s *StockService) FetchStocks() ([]StockData, error) {
 	}
 
 	return aggregatedResponse.Data, nil
+}
+
+func (s *StockService) SaveStockToDB(code string, name string, listingDate string, shares int64, listingBoard nulls.String) error {
+	stock := &models.Stock{
+		Code:         code,
+		Name:         name,
+		ListingDate:  listingDate,
+		Shares:       shares,
+		ListingBoard: listingBoard,
+	}
+	err := s.DB.Save(stock)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // SaveStockDataToDB -- Receive Stock Data and save them all to database
