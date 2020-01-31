@@ -58,6 +58,7 @@ func (s *StatementService) InsertRowTitle(rowTitle string) error {
 	return nil
 }
 
+// GetRowTitle --
 func (s *StatementService) GetRowTitle(rowTitle string) (*models.StatementRowTitle, error) {
 	statementRowTitle := &models.StatementRowTitle{}
 	s.DB.Where("title = $1", rowTitle).First(statementRowTitle)
@@ -94,7 +95,7 @@ func (s *StatementService) InsertUpdateStatementRow(
 	}
 
 	// Check If exists statement row with the same row title, date, and stock id
-	statementRow := s.StatementRowExists(statementRowTitle.ID, stock.ID, date)
+	statementRow := s.GetStatementRow(statementRowTitle.ID, stock.ID, date)
 	// If exists, Update the statementRowFact
 	if statementRow != nil {
 		statementRowFact := &models.StatementRowFact{}
@@ -134,6 +135,7 @@ func (s *StatementService) InsertUpdateStatementRow(
 	return nil
 }
 
+// UpdateRowFact --
 func (s *StatementService) UpdateRowFact(rowFact *models.StatementRowFact) error {
 	err := s.DB.Save(rowFact)
 	if err != nil {
@@ -142,6 +144,7 @@ func (s *StatementService) UpdateRowFact(rowFact *models.StatementRowFact) error
 	return nil
 }
 
+// GetRowFact --
 func (s *StatementService) GetRowFact(
 	statementRowTitle string,
 	stockCode string,
@@ -189,8 +192,8 @@ func (s *StatementService) GetRowFact(
 	return rowFact, nil
 }
 
-// StatementRowExists --
-func (s *StatementService) StatementRowExists(statementRowTitleID uuid.UUID, stockID uuid.UUID, date time.Time) *models.StatementRow {
+// GetStatementRow --
+func (s *StatementService) GetStatementRow(statementRowTitleID uuid.UUID, stockID uuid.UUID, date time.Time) *models.StatementRow {
 	// Check If exists statement row with the same row title, date, and stock id
 	statementRow := &models.StatementRow{}
 	dateString := date.Format("2006-01-02 15:04:05")
