@@ -49,6 +49,15 @@ func main() {
 		"Directory path",
 	)
 
+	// -- calculate-ratios
+	calculateRatiosCommand := flag.NewFlagSet("calculate-ratios", flag.ExitOnError)
+	// -- -- calculate-ratios flags
+	calculateRatiosYearPtr := calculateRatiosCommand.Int(
+		"year",
+		0,
+		"Which financial year to calculate the ratios. Currently available {2018|2019}",
+	)
+
 	// No Subcommands error handler
 	if len(os.Args) < 2 {
 		//fmt.Println("")
@@ -68,6 +77,8 @@ func main() {
 		updateStockListCommand.Parse(os.Args) // Here args not used, but need to be passed in
 	case "save-report":
 		saveReportCommand.Parse(os.Args[2:])
+	case "calculate-ratios":
+		calculateRatiosCommand.Parse(os.Args[2:])
 	default:
 		flag.PrintDefaults()
 		os.Exit(1)
@@ -105,6 +116,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Handle save-report subCommand
 	if saveReportCommand.Parsed() {
 		if *saveReportFilePathPtr == "" && *saveReportDirPathPtr == "" {
 			saveReportCommand.PrintDefaults()
@@ -138,6 +150,20 @@ func main() {
 			fmt.Println("Save report finished")
 			os.Exit(0)
 		}
+	}
+
+	// Handle calculate-ratios subcommand
+	if calculateRatiosCommand.Parsed() {
+		if *calculateRatiosYearPtr == 0 || *calculateRatiosYearPtr < 2018 {
+			calculateRatiosCommand.PrintDefaults()
+			os.Exit(1)
+		}
+		err := handlers.CalculateRatios(*calculateRatiosYearPtr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("Calculate ratios finished. Ratios are saved to DB")
+		os.Exit(0)
 	}
 
 	//excelReports, err := services.OpenExcelFilesInDir("files/excel_reports/2017/trimester_3")

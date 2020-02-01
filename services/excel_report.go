@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,6 +24,7 @@ func NewExcelReportService() *ExcelReportService {
 		"general information": 1,
 		"financial position":  2,
 		"profit or loss":      3,
+		"changes in equity":   4,
 	}
 	service := &ExcelReportService{SheetNames: sheetNames}
 	return service
@@ -91,24 +93,18 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 		"general information",
 		"financial position",
 		"profit or loss",
+		"changes in equity",
 	}
 	statementService, err := NewStatementService("tools_development")
 	if err != nil {
 		return err
 	}
-	var stockCode string
-	var dateString string
-	// Get Stock Code and Date
-	sheetIndex, ok := ex.SheetNames[sheetNames[0]]
-	if !ok {
-		return fmt.Errorf("sheet name: %s does not exist", sheetNames[0])
-	}
-	stockCodeCell := "B7"
-	dateCell := "B4"
 	// Get Stock Code ----
-	stockCode = exRep.GetContent(sheetIndex, stockCodeCell)
-	if stockCode == "" {
-		return fmt.Errorf("Stock code not found on report")
+	stockCode := exRep.EntityCode()
+	// Get date -----
+	date, err := exRep.Date()
+	if err != nil {
+		return err
 	}
 	// Check if Stock Code exists in DB ----
 	stockService, err := NewStockService("tools_development")
@@ -118,27 +114,16 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 	_, err = stockService.GetStockByCode(stockCode)
 	if err != nil {
 		// if stock does not exist, add it to DB with limited information
-		stockNameCell := "B5"
-		stockName := exRep.GetContent(sheetIndex, stockNameCell)
+		stockName := exRep.EntityName()
 		err = stockService.SaveStockToDB(stockCode, stockName, "-", -1, nulls.NewString("-"))
 		if err != nil {
 			return err
 		}
 	}
-	// ----
-	// Get and convert date -----
-	dateString = exRep.GetContent(sheetIndex, dateCell)
-	if dateString == "" {
-		return fmt.Errorf("Date not found on report")
-	}
-	date, err := convertReportDateToTime(dateString)
-	if err != nil || date.IsZero() {
-		return fmt.Errorf("Error in converting report date to time.Time")
-	}
 	// -----
 	fmt.Printf("Saving %s report to DB. Please wait..\n", stockCode)
 
-	for _, sn := range sheetNames[1:] {
+	for _, sn := range sheetNames[1:3] {
 		sheetIndex, ok := ex.SheetNames[sn]
 		if !ok {
 			return fmt.Errorf("sheet name: %s does not exist", sn)
@@ -177,6 +162,44 @@ func (ex *ExcelReportService) SaveReportToDB(exRep *ExcelReport) error {
 			row++
 		}
 	}
+	// Save Common Stocks end of period
+	commonStocksTitle := "Common stocks - Equity position, end of the period"
+	commonStocksValue := exRep.CommonStocks()
+	_ = statementService.InsertRowTitle(commonStocksTitle)
+	err = statementService.InsertUpdateStatementRow(
+		stockCode,
+		sheetNames[3],
+		commonStocksTitle,
+		commonStocksValue,
+		date,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Insert EPS
+	EPSTitle := "EPS"
+	EPSValue := exRep.EPS()
+	// Some reports do not have common stock amount
+	// This results in -Infinity or Infinity EPS value
+	// Workaround, set it to either large negative or positive amount
+	if math.IsInf(EPSValue, -1) {
+		EPSValue = -1000000000
+	}
+	if math.IsInf(EPSValue, 1) {
+		EPSValue = 1000000000
+	}
+	statementService.InsertRowTitle(EPSTitle)
+	err = statementService.InsertUpdateStatementRow(
+		stockCode,
+		"ratios",
+		EPSTitle,
+		EPSValue,
+		date,
+	)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -205,22 +228,17 @@ func (exRep *ExcelReport) EntityCode() string {
 	return entityCode
 }
 
-func (exRep *ExcelReport) TotalAssets() float64 {
-	sheetName := exRep.Worksheets[2] // The sheet name for statement of financial position
-	totalAssetCell := exRep.File.SearchSheet(sheetName, "Total assets")[0]
-	row := totalAssetCell[1:]
-	currTotalAssetCell := "B" + row
-	strVal := exRep.File.GetCellValue(sheetName, currTotalAssetCell)
-	return excelFloatToFloat(strVal)
-}
-
-func (exRep *ExcelReport) TotalAssetsPrevious() float64 {
-	sheetName := exRep.Worksheets[2]
-	totalAssetCell := exRep.File.SearchSheet(sheetName, "Total assets")[0]
-	row := totalAssetCell[1:]
-	prevTotalAssetCell := "C" + row
-	strVal := exRep.File.GetCellValue(sheetName, prevTotalAssetCell)
-	return excelFloatToFloat(strVal)
+func (exRep *ExcelReport) Date() (time.Time, error) {
+	dateCell := "B4"
+	dateString := exRep.GetContent(1, dateCell)
+	if dateString == "" {
+		return time.Time{}, fmt.Errorf("Date not found on report")
+	}
+	date, err := convertReportDateToTime(dateString)
+	if err != nil || date.IsZero() {
+		return time.Time{}, fmt.Errorf("Error in converting report date to time.Time")
+	}
+	return date, nil
 }
 
 func (exRep *ExcelReport) NetIncome() float64 {
@@ -229,6 +247,29 @@ func (exRep *ExcelReport) NetIncome() float64 {
 	row := totalProfitCell[1:]
 	netIncomeCell := "B" + row
 	strVal := exRep.File.GetCellValue(sheetName, netIncomeCell)
+	return excelFloatToFloat(strVal)
+}
+
+func (exRep *ExcelReport) CommonStocks() float64 {
+	sheetName := exRep.Worksheets[4]
+
+	eqPosEndOfPeriodCell := exRep.File.SearchSheet(sheetName, "Equity position, end of the period")[0]
+	fmt.Println("Eq pos CELL: ", eqPosEndOfPeriodCell)
+	// Find Digit
+	re := regexp.MustCompile(`\d+`)
+	eqPosEndOfPeriodRow := string(re.Find([]byte(eqPosEndOfPeriodCell)))
+	fmt.Println("Eq Pos ROW: ", eqPosEndOfPeriodRow)
+
+	commonStocksCell := exRep.File.SearchSheet(sheetName, "Common stocks")[0]
+	fmt.Println("Common stocks CELL: ", commonStocksCell)
+	// Find Alphabet
+	re = regexp.MustCompile(`[A-Z]+`)
+	commonStocksCol := string(re.Find([]byte(commonStocksCell)))
+	fmt.Println("Common Stocks COL: ", commonStocksCol)
+
+	endOfPeriodCommonStockcell := commonStocksCol + eqPosEndOfPeriodRow
+	strVal := exRep.File.GetCellValue(sheetName, endOfPeriodCommonStockcell)
+	fmt.Println("Common stocks strVal", strVal)
 	return excelFloatToFloat(strVal)
 }
 
@@ -245,10 +286,17 @@ func (exRep *ExcelReport) PreferredStock() float64 {
 	return excelFloatToFloat(strVal)
 }
 
-func (exRep *ExcelReport) ROA() float64 {
-	averageAssets := (exRep.TotalAssets() + exRep.TotalAssetsPrevious()) / 2
-	ROA := exRep.NetIncome() / averageAssets
-	return ROA
+func (exRep *ExcelReport) EPS() float64 {
+	netIncome := exRep.NetIncome()
+	preferredDividends := 0.0 // FIXME: Could not find this in reports yet
+	commonStocks := exRep.CommonStocks()
+	// net income * 1000 because the report values are in thousands
+	EPS := ((netIncome * 1000) - preferredDividends) / commonStocks
+	fmt.Println("Calculating EPS")
+	fmt.Println("net income", netIncome)
+	fmt.Println("common stocks", commonStocks)
+	fmt.Println("net income * 1000 / common stocks = ", EPS)
+	return EPS
 }
 
 // OpenExcelFilesInDir -- Open All the files in directory

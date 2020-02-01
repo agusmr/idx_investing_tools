@@ -99,7 +99,7 @@ func (s *StatementService) InsertUpdateStatementRow(
 	// If exists, Update the statementRowFact
 	if statementRow != nil {
 		statementRowFact := &models.StatementRowFact{}
-		s.DB.Where("statement_row_id = $1", statementRow.ID)
+		s.DB.Where("statement_row_id = $1", statementRow.ID).First(statementRowFact)
 
 		statementRowFact.Amount = rowAmount
 		s.DB.Save(statementRowFact)
