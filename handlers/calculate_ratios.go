@@ -31,6 +31,9 @@ func CalculateRatios(year int) error {
 		// Calculate ROA ----------
 		ROAAmount, err := ratioService.CalculateROA(s.Code, year)
 		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				continue
+			}
 			return err
 		}
 		date, err := tools.YearToDate(year)

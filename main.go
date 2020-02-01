@@ -14,6 +14,7 @@ var commands = []string{
 	"get-reports",
 	"update-stock-list",
 	"save-report",
+	"calculate-ratios",
 }
 
 func main() {

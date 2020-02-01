@@ -166,6 +166,13 @@ func (s *StatementService) GetRowFact(
 		return nil, fmt.Errorf("Stock Code not found")
 	}
 
+	fmt.Printf(`
+    Params: \n
+    %+v \n
+    %+v - %s\n
+    %s \n
+  `, date, stock.ID, stockCode, rowTitle.Title)
+
 	// Get RowFact
 	rowFact := &models.StatementRowFact{}
 	err := s.DB.RawQuery(`
@@ -185,7 +192,7 @@ func (s *StatementService) GetRowFact(
     srf.date = ? AND
     srf.stock_id = ? AND
     srt.title = ?
-  `, date, stock.Code, rowTitle.Title).First(rowFact)
+  `, date, stock.ID, rowTitle.Title).First(rowFact)
 	if err != nil {
 		return nil, err
 	}
